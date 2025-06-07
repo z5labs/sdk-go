@@ -25,6 +25,8 @@ func (c *Cache[K, V]) init() {
 // in the cache, then the zero value for V will be returned along with
 // false.
 func (c *Cache[K, V]) Get(key K) (V, bool) {
+	c.init()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -37,6 +39,8 @@ func (c *Cache[K, V]) Get(key K) (V, bool) {
 // If the given function succeeds, then the returned value will be placed
 // in the cache before being returned.
 func (c *Cache[K, V]) GetOrNew(key K, f func() (V, error)) (V, error) {
+	c.init()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
@@ -57,6 +61,8 @@ func (c *Cache[K, V]) GetOrNew(key K, f func() (V, error)) (V, error) {
 // Put places the key value pair into the cache. It will override any previously
 // cached value.
 func (c *Cache[K, V]) Put(key K, value V) {
+	c.init()
+
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
