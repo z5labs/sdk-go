@@ -8,19 +8,28 @@ package merkle
 import (
 	"encoding"
 	"encoding/hex"
+	"errors"
 	"fmt"
 	"hash"
 )
 
-// BinaryTree
+// BinaryTree is a merkle tree where each node in the tree has exactly 2 child nodes.
 type BinaryTree struct {
 	hash  []byte
 	left  *BinaryTree
 	right *BinaryTree
 }
 
-// ConstructBinaryTree
+// ErrAtLeastOneLeafRequired is returned if a [BinaryTree] is zero leaf nodes are
+// provided when calling [ConstructBinaryTree].
+var ErrAtLeastOneLeafRequired = errors.New("must provide at least one leaf")
+
+// ConstructBinaryTree will construct a full merkle [BinaryTree] from the given leaf nodes.
 func ConstructBinaryTree[T encoding.BinaryMarshaler](hasher hash.Hash, leafs ...T) (*BinaryTree, error) {
+	if len(leafs) == 0 {
+		return nil, ErrAtLeastOneLeafRequired
+	}
+
 	nodes := make([]*BinaryTree, len(leafs))
 	for i, leaf := range leafs {
 		b, err := leaf.MarshalBinary()

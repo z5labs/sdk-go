@@ -9,6 +9,7 @@ import (
 	"bytes"
 	crand "crypto/rand"
 	"crypto/sha256"
+	"errors"
 	"io"
 	"math/rand/v2"
 	"testing"
@@ -32,6 +33,7 @@ func FuzzConstructBinaryTree(f *testing.F) {
 		{numOfLeafs: 1, seed1: 20, seed2: 30},
 		{numOfLeafs: 2, seed1: 10, seed2: 37},
 		{numOfLeafs: 7, seed1: 199, seed2: 400},
+		{numOfLeafs: 0, seed1: 55, seed2: 12},
 	}
 	for _, data := range corpus {
 		f.Add(data.numOfLeafs, data.seed1, data.seed2)
@@ -52,6 +54,10 @@ func FuzzConstructBinaryTree(f *testing.F) {
 		}
 
 		tree, err := ConstructBinaryTree(sha256.New(), leafs...)
+		if errors.Is(err, ErrAtLeastOneLeafRequired) {
+			return
+		}
+
 		require.Nil(t, err)
 
 		var foundLeaves uint
@@ -71,6 +77,6 @@ func walk(tree *BinaryTree, f func(*BinaryTree)) {
 		return
 	}
 
-	f(tree.Left())
-	f(tree.Right())
+	walk(tree.Left(), f)
+	walk(tree.Right(), f)
 }
