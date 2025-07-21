@@ -7,30 +7,25 @@ package merkle
 
 import (
 	"crypto/sha256"
-	"encoding"
 	"fmt"
+	"strings"
 )
 
 func ExampleBinaryTree() {
-	leafs := []encoding.BinaryMarshaler{
-		stringBinaryMarshaler("a"),
-		stringBinaryMarshaler("b"),
-	}
-
-	treeA, err := ConstructBinaryTree(sha256.New(), leafs...)
+	treeA, err := ConstructBinaryTree(sha256.New(), strings.NewReader("a"), strings.NewReader("b"))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(treeA)
 
-	treeB, err := ConstructBinaryTree(sha256.New(), leafs...)
+	treeB, err := ConstructBinaryTree(sha256.New(), strings.NewReader("a"), strings.NewReader("b"))
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 	fmt.Println(treeB)
 
-	// Output: 39361160903c6695c6804b7157c7bd10013e9ba89b1f954243bc8e3990b08db9
-	// 39361160903c6695c6804b7157c7bd10013e9ba89b1f954243bc8e3990b08db9
+	// Output: e5a01fee14e0ed5c48714f22180f25ad8365b53f9779f79dc4a3d7e93963f94a
+	// e5a01fee14e0ed5c48714f22180f25ad8365b53f9779f79dc4a3d7e93963f94a
 }

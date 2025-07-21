@@ -6,11 +6,11 @@
 package merkle
 
 import (
-	"encoding"
+	"bytes"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"hash"
+	"io"
 )
 
 // BinaryTree is a merkle tree where each node in the tree has exactly 2 child nodes.
@@ -25,25 +25,20 @@ type BinaryTree struct {
 var ErrAtLeastOneLeafRequired = errors.New("must provide at least one leaf")
 
 // ConstructBinaryTree will construct a full merkle [BinaryTree] from the given leaf nodes.
-func ConstructBinaryTree[T encoding.BinaryMarshaler](hasher hash.Hash, leafs ...T) (*BinaryTree, error) {
+func ConstructBinaryTree[T io.Reader](hasher hash.Hash, leafs ...T) (*BinaryTree, error) {
 	if len(leafs) == 0 {
 		return nil, ErrAtLeastOneLeafRequired
 	}
 
 	nodes := make([]*BinaryTree, len(leafs))
 	for i, leaf := range leafs {
-		b, err := leaf.MarshalBinary()
-		if err != nil {
-			return nil, err
-		}
-
-		err = writeToHasher(hasher, b)
+		hash, err := hashAll(hasher, leaf)
 		if err != nil {
 			return nil, err
 		}
 
 		nodes[i] = &BinaryTree{
-			hash: hasher.Sum(nil),
+			hash: hash,
 		}
 	}
 
@@ -64,21 +59,23 @@ func constructBinaryTree(hasher hash.Hash, nodes []*BinaryTree) (*BinaryTree, er
 		nodes = nodes[:len(nodes)-1]
 	}
 
+	var buf bytes.Buffer
 	for i := 0; i < len(nodes); i += 2 {
+		buf.Reset()
+
 		left := nodes[i]
-		err := writeToHasher(hasher, left.hash)
-		if err != nil {
-			return nil, err
-		}
+		buf.Write(left.hash)
 
 		right := nodes[i+1]
-		err = writeToHasher(hasher, right.hash)
+		buf.Write(right.hash)
+
+		hash, err := hashAll(hasher, &buf)
 		if err != nil {
 			return nil, err
 		}
 
 		newNodes[i/2] = &BinaryTree{
-			hash:  hasher.Sum(nil),
+			hash:  hash,
 			left:  left,
 			right: right,
 		}
@@ -90,35 +87,17 @@ func constructBinaryTree(hasher hash.Hash, nodes []*BinaryTree) (*BinaryTree, er
 	return constructBinaryTree(hasher, newNodes)
 }
 
-// IncompleteWriteError is returned if not all bytes are successfully written
-// to the provided [hash.Hash].
-type IncompleteWriteError struct {
-	Expected      int
-	ActualWritten int
-}
-
-// Error implements the [error] interface.
-func (e IncompleteWriteError) Error() string {
-	return fmt.Sprintf("expected write %d bytes but only wrote: %d", e.Expected, e.ActualWritten)
-}
-
-func writeToHasher(hasher hash.Hash, b []byte) error {
+func hashAll(hasher hash.Hash, r io.Reader) ([]byte, error) {
 	// ensure state independent hashes aka each node hash is reproducible
 	// and independent of the hashing operations that came before it
 	hasher.Reset()
 
-	n, err := hasher.Write(b)
+	_, err := io.Copy(hasher, r)
 	if err != nil {
-		return err
-	}
-	if n != len(b) {
-		return IncompleteWriteError{
-			Expected:      len(b),
-			ActualWritten: n,
-		}
+		return nil, err
 	}
 
-	return nil
+	return hasher.Sum(nil), nil
 }
 
 // Hash returns the raw hash value for this tree.

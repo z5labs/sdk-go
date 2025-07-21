@@ -7,26 +7,21 @@ package merkle
 
 import (
 	"crypto/sha256"
-	"encoding"
 	"errors"
 	"hash"
+	"io"
+	"strings"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-var errMarshalBinaryFailed = errors.New("failed to marshal binary")
+var errReadFailed = errors.New("failed to read")
 
-type binaryMarshalerFunc func() ([]byte, error)
+type readFunc func([]byte) (int, error)
 
-func (f binaryMarshalerFunc) MarshalBinary() ([]byte, error) {
-	return f()
-}
-
-type stringBinaryMarshaler string
-
-func (s stringBinaryMarshaler) MarshalBinary() ([]byte, error) {
-	return []byte(s), nil
+func (f readFunc) Read(b []byte) (int, error) {
+	return f(b)
 }
 
 func TestConstructBinaryTree(t *testing.T) {
@@ -37,7 +32,7 @@ func TestConstructBinaryTree(t *testing.T) {
 	testCases := []struct {
 		Name   string
 		Hasher func() hash.Hash
-		Leafs  [][]encoding.BinaryMarshaler
+		Leafs  [][]io.Reader
 		Assert func(t *testing.T, err error, trees []*BinaryTree)
 	}{
 		{
@@ -45,15 +40,15 @@ func TestConstructBinaryTree(t *testing.T) {
 			Hasher: func() hash.Hash {
 				return sha256.New()
 			},
-			Leafs: [][]encoding.BinaryMarshaler{
+			Leafs: [][]io.Reader{
 				{
-					binaryMarshalerFunc(func() ([]byte, error) {
-						return nil, errMarshalBinaryFailed
+					readFunc(func(b []byte) (int, error) {
+						return 0, errReadFailed
 					}),
 				},
 			},
 			Assert: func(t *testing.T, err error, trees []*BinaryTree) {
-				require.ErrorIs(t, err, errMarshalBinaryFailed)
+				require.ErrorIs(t, err, errReadFailed)
 				require.Empty(t, trees)
 			},
 		},
@@ -62,11 +57,11 @@ func TestConstructBinaryTree(t *testing.T) {
 			Hasher: func() hash.Hash {
 				return sha256.New()
 			},
-			Leafs: [][]encoding.BinaryMarshaler{
+			Leafs: [][]io.Reader{
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
-					stringBinaryMarshaler("c"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
+					strings.NewReader("c"),
 				},
 			},
 			Assert: func(t *testing.T, err error, trees []*BinaryTree) {
@@ -74,7 +69,7 @@ func TestConstructBinaryTree(t *testing.T) {
 				require.Len(t, trees, 1)
 
 				tree := trees[0]
-				require.Equal(t, "6632753d6ca30fea890f37fc150eaed8d068acf596acb2251b8fafd72db977d3", tree.String())
+				require.Equal(t, "7075152d03a5cd92104887b476862778ec0c87be5c2fa1c0a90f87c49fad6eff", tree.String())
 			},
 		},
 		{
@@ -82,14 +77,14 @@ func TestConstructBinaryTree(t *testing.T) {
 			Hasher: func() hash.Hash {
 				return sha256.New()
 			},
-			Leafs: [][]encoding.BinaryMarshaler{
+			Leafs: [][]io.Reader{
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
 				},
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
 				},
 			},
 			Assert: func(t *testing.T, err error, trees []*BinaryTree) {
@@ -106,14 +101,14 @@ func TestConstructBinaryTree(t *testing.T) {
 			Hasher: func() hash.Hash {
 				return sha256.New()
 			},
-			Leafs: [][]encoding.BinaryMarshaler{
+			Leafs: [][]io.Reader{
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
 				},
 				{
-					stringBinaryMarshaler("b"),
-					stringBinaryMarshaler("a"),
+					strings.NewReader("b"),
+					strings.NewReader("a"),
 				},
 			},
 			Assert: func(t *testing.T, err error, trees []*BinaryTree) {
@@ -131,14 +126,14 @@ func TestConstructBinaryTree(t *testing.T) {
 			Hasher: func() hash.Hash {
 				return globalHasher
 			},
-			Leafs: [][]encoding.BinaryMarshaler{
+			Leafs: [][]io.Reader{
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
 				},
 				{
-					stringBinaryMarshaler("a"),
-					stringBinaryMarshaler("b"),
+					strings.NewReader("a"),
+					strings.NewReader("b"),
 				},
 			},
 			Assert: func(t *testing.T, err error, trees []*BinaryTree) {

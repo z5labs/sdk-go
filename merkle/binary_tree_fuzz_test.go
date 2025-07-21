@@ -17,12 +17,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type bytesBinaryMarshaler []byte
-
-func (b bytesBinaryMarshaler) MarshalBinary() ([]byte, error) {
-	return b, nil
-}
-
 func FuzzConstructBinaryTree(f *testing.F) {
 	corpus := []struct {
 		numOfLeafs uint
@@ -43,14 +37,13 @@ func FuzzConstructBinaryTree(f *testing.F) {
 		src := rand.NewPCG(seed1, seed2)
 		r := rand.New(src)
 
-		leafs := make([]bytesBinaryMarshaler, numOfLeafs)
+		leafs := make([]*bytes.Buffer, numOfLeafs)
 		for i := range numOfLeafs {
-			var buf bytes.Buffer
-			_, err := io.CopyN(&buf, crand.Reader, r.Int64N(1024))
+			leafs[i] = new(bytes.Buffer)
+
+			_, err := io.CopyN(leafs[i], crand.Reader, r.Int64N(1024))
 
 			require.Nil(t, err)
-
-			leafs[i] = bytesBinaryMarshaler(buf.Bytes())
 		}
 
 		tree, err := ConstructBinaryTree(sha256.New(), leafs...)
