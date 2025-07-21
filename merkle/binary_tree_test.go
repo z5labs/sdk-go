@@ -74,7 +74,7 @@ func TestConstructBinaryTree(t *testing.T) {
 				require.Len(t, trees, 1)
 
 				tree := trees[0]
-				require.Equal(t, "6a388a737418e77dc12d59c8ded9dbd83d1ff6b33a84db04ab71d1bf20294f83", tree.String())
+				require.Equal(t, "6632753d6ca30fea890f37fc150eaed8d068acf596acb2251b8fafd72db977d3", tree.String())
 			},
 		},
 		{
@@ -127,7 +127,7 @@ func TestConstructBinaryTree(t *testing.T) {
 			},
 		},
 		{
-			Name: "should fail if hasher is reused",
+			Name: "should succeed if hasher is reused",
 			Hasher: func() hash.Hash {
 				return globalHasher
 			},
@@ -148,7 +148,7 @@ func TestConstructBinaryTree(t *testing.T) {
 				treeA := trees[0]
 				treeB := trees[1]
 
-				require.NotEqual(t, treeA.String(), treeB.String())
+				require.Equal(t, treeA.String(), treeB.String())
 			},
 		},
 	}

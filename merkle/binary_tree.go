@@ -103,6 +103,10 @@ func (e IncompleteWriteError) Error() string {
 }
 
 func writeToHasher(hasher hash.Hash, b []byte) error {
+	// ensure state independent hashes aka each node hash is reproducible
+	// and independent of the hashing operations that came before it
+	hasher.Reset()
+
 	n, err := hasher.Write(b)
 	if err != nil {
 		return err
